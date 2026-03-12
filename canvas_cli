@@ -1,0 +1,56 @@
+#!/bin/bash
+
+export $(xargs < .env)
+
+BASE_URL="https://boisestatecanvas.instructure.com"
+
+get_courses_json(){
+    curl -s \
+        -H "Authorization: Bearer $CANVAS_API_TOKEN" \
+        "$BASE_URL/api/v1/users/self/courses?enrollment_state=active&per_page=100"
+}
+
+get_assignments_json(){
+    curl -s -G \
+        -H "Authorization: Bearer $CANVAS_API_TOKEN" \
+        "$BASE_URL/api/v1/courses/$1/assignments"
+}
+
+display_courses(){
+    jq -r 'if type == "object" and .errors then
+            "❌ Error: \(.errors[0].message)"
+           else
+            .[] | select(.name) | "ID: \(.id) \t Name: \(.name)"
+           end'
+}
+
+display_assignments(){
+    # Iterates over the top-level array directly
+    jq -r 'if type == "object" and .errors then
+            "❌ Error: \(.errors[0].message)"
+           else
+            .[] | "[\(.due_at // "No Due Date" | .[0:10])] \(.name) (\(.points_possible)pts)"
+           end'
+}
+
+OPERATION="$1"
+COURSE_ID="$2"
+
+case "$OPERATION" in
+    courses)
+        get_courses_json | display_courses
+        ;;
+    assignments)
+        get_assignments_json "$COURSE_ID" | display_assignments
+        ;;
+    *)
+        echo "Usage: canvas_cli <operation> [<class-id>]" >&2
+        echo "" >&2
+        echo "Operations:" >&2
+        echo "courses       Get the list of courses and their IDs." >&2
+        echo "assignments   Get the list of assignments for a particular course." >&2
+        echo ""
+        exit 1
+        ;;
+esac
+

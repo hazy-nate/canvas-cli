@@ -64,6 +64,10 @@ $ canvas_cli assignments 23404
 | `/api/v1/users/self/courses?enrollment_state=active&per_page=100` | List of currently enrolled courses. |
 | `/api/v1/courses/<course-id>/assignments` | List of assignments for a course. |
 
+### Note on pagination
+
+Pagination isn't necessary for the first endpoint because, typically, students aren't enrolled in a substantial number of classes at once. With a page size of 100, the program should be able to retrieve all of the courses for someone.
+
 ## Reflection
 
 I never realized that Canvas had an API you could interact with through programs. I always assumed that it was closed off. I learned how to generate a token on the Account page in Canvas and use it in an HTTP GET request. I was familiar with `jq` before this program was made, but I never knew it was so flexible.

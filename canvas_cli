@@ -4,6 +4,12 @@ export $(xargs < .env)
 
 BASE_URL="https://boisestatecanvas.instructure.com"
 
+RED="\u001b[31m"
+GREEN="\u001b[32m"
+YELLOW="\u001b[33m"
+BLUE="\u001b[34m"
+RESET="\u001b[0m"
+
 get_courses_json(){
     curl -s \
         -H "Authorization: Bearer $CANVAS_API_TOKEN" \
@@ -17,20 +23,35 @@ get_assignments_json(){
 }
 
 display_courses(){
-    jq -r 'if type == "object" and .errors then
-            "❌ Error: \(.errors[0].message)"
-           else
-            .[] | select(.name) | "ID: \(.id) \t Name: \(.name)"
-           end'
+    jq -r '
+    if type == "object" and .errors then
+        "\u001b[31m❌ Error: \(.errors[0].message)\u001b[0m"
+    else
+        .[] | select(.name) |
+        (if .name | contains("Sp26") then "\u001b[32m" else "\u001b[37m" end) as $nameColor |
+
+        "\u001b[36m\(.id)\u001b[0m\t\($nameColor)\(.name)\u001b[0m"
+    end'
 }
 
 display_assignments(){
-    # Iterates over the top-level array directly
-    jq -r 'if type == "object" and .errors then
-            "❌ Error: \(.errors[0].message)"
-           else
-            .[] | "[\(.due_at // "No Due Date" | .[0:10])] \(.name) (\(.points_possible)pts)"
-           end'
+    jq -r '
+    if type == "object" and .errors then
+        "\u001b[31m❌ Error: \(.errors[0].message)\u001b[0m"
+    else
+        sort_by(.due_at) | .[] |
+
+        (.due_at | fromdateiso8601? // 0) as $due_ts |
+        (now) as $now_ts |
+
+        (if $due_ts == 0 then "\u001b[37m"          # White (No due date)
+         elif $due_ts < $now_ts then "\u001b[31m"   # Red (Overdue)
+         elif $due_ts < ($now_ts + 86400) then "\u001b[33m" # Yellow (Due < 24h)
+         else "\u001b[32m"                          # Green (Safe)
+         end) as $color |
+
+        "\($color)[\(.due_at // "    No Date    " | .[0:10])]\u001b[0m \t \u001b[36m(\(.points_possible // 0)pts)\u001b[0m \t \(.name)"
+    end'
 }
 
 OPERATION="$1"

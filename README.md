@@ -31,7 +31,7 @@ API token into a `.env` file in the same directory.
 $ git clone https://github.com/hazy-nate/canvas-cli
 $ cd canvas-cli
 $ echo "CANVAS_API_TOKEN=<TOKEN HERE>" > .env
-$ canvas-cli ...
+$ canvas_cli ...
 ```
 
 ## Usage
